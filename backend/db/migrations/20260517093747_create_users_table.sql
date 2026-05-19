@@ -5,19 +5,22 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
 
-    password_hash TEXT NOT NULL,
-
     display_name VARCHAR(100),
     avatar_url TEXT,
     bio TEXT,
 
-    status VARCHAR(20) DEFAULT 'offline',
+    timezone VARCHAR(100) DEFAULT 'UTC',
 
-    last_seen_at TIMESTAMP,
+    is_verified BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
 
     privacy_setting VARCHAR(20) DEFAULT 'public',
 
     notifications_enabled BOOLEAN DEFAULT TRUE,
+
+    push_token TEXT,
+
+    last_seen_at TIMESTAMP,
 
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
