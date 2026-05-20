@@ -2,10 +2,9 @@ package main
 
 import (
 	"log"
-	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/khaingminhtun/realtimechatty/db"
+	"github.com/khaingminhtun/realtimechatty/internal/app"
 )
 
 func main() {
@@ -18,10 +17,7 @@ func main() {
 
 	log.Println("Connected to database")
 
-	r := gin.Default()
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "OK"})
-	})
+	app := app.NewApp(pool)
 
-	r.Run(":8080")
+	app.Run(":8080")
 }
