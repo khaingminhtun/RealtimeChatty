@@ -3,9 +3,11 @@ package app
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/khaingminhtun/realtimechatty/internal/auth"
 	"github.com/khaingminhtun/realtimechatty/internal/db"
+	"github.com/khaingminhtun/realtimechatty/internal/mail"
 	"github.com/khaingminhtun/realtimechatty/internal/router"
 	"github.com/khaingminhtun/realtimechatty/internal/user"
 )
@@ -14,14 +16,17 @@ type App struct {
 	router *gin.Engine
 }
 
-func NewApp(pool *pgxpool.Pool) *App {
+func NewApp(pool *pgxpool.Pool, redis *redis.Client) *App {
 
 	queries := db.New(pool)
 
 	userRepo := user.NewUserRepository(queries)
-	authRepo := auth.NewAuthRepository(queries)
+	authRepo := auth.NewAuthRepository(pool)
 
-	authSvc := auth.NewAuthService(userRepo, authRepo)
+	tokenManager := auth.NewTokenManager()
+	mailer := mail.NewSendGridMailer()
+
+	authSvc := auth.NewAuthService(userRepo, authRepo, *tokenManager, mailer, redis)
 	authHandler := auth.NewAuthHandler(authSvc)
 
 	// IMPORTANT: must be used immediately

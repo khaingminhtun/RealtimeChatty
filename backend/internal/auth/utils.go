@@ -1,6 +1,11 @@
 package auth
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+
+	"golang.org/x/crypto/bcrypt"
+)
 
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword(
@@ -19,4 +24,9 @@ func CheckPassword(
 		[]byte(hash),
 		[]byte(password),
 	)
+}
+
+func HashString(val string) string {
+	hash := sha256.Sum256([]byte(val))
+	return hex.EncodeToString(hash[:])
 }

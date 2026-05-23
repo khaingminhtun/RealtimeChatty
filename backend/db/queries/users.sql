@@ -22,3 +22,10 @@ SELECT *
 FROM users
 WHERE username = $1
 LIMIT 1;
+
+-- name: MarkUserAsVerified :exec
+UPDATE users
+SET 
+    is_verified = TRUE, -- Or whatever your column name is (e.g., status = 'verified')
+    updated_at = NOW()
+WHERE email = $1;

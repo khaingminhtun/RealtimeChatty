@@ -5,18 +5,32 @@
 package db
 
 import (
+	"net/netip"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type EmailVerification struct {
+type RefreshToken struct {
 	ID        int64            `json:"id"`
 	UserID    int64            `json:"user_id"`
-	Email     string           `json:"email"`
-	OtpHash   string           `json:"otp_hash"`
-	Attempts  pgtype.Int4      `json:"attempts"`
-	IsUsed    pgtype.Bool      `json:"is_used"`
+	SessionID int64            `json:"session_id"`
+	TokenHash string           `json:"token_hash"`
+	IsRevoked pgtype.Bool      `json:"is_revoked"`
 	ExpiresAt pgtype.Timestamp `json:"expires_at"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+type Session struct {
+	ID         int64            `json:"id"`
+	UserID     int64            `json:"user_id"`
+	TokenHash  string           `json:"token_hash"`
+	DeviceName pgtype.Text      `json:"device_name"`
+	DeviceType pgtype.Text      `json:"device_type"`
+	IpAddress  *netip.Addr      `json:"ip_address"`
+	UserAgent  pgtype.Text      `json:"user_agent"`
+	IsActive   pgtype.Bool      `json:"is_active"`
+	ExpiresAt  pgtype.Timestamp `json:"expires_at"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
 
 type User struct {

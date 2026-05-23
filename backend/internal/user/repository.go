@@ -20,6 +20,8 @@ type UserRepository interface {
 		ctx context.Context,
 		username string,
 	) (db.User, error)
+
+	
 }
 
 type userRepository struct {
@@ -50,3 +52,5 @@ func (r *userRepository) GetUserByUsername(
 ) (db.User, error) {
 	return r.q.GetUserByUsername(ctx, username)
 }
+
+

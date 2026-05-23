@@ -22,6 +22,16 @@ migrate-status:
 
 
 # ======================
+# DATA MANAGEMENT
+# ======================
+
+db-clean-data:
+	@echo "Wiping data from all tables (preserving goose schema)..."
+	docker cp ./db/scripts/clean_data.sql postgredb:/tmp/clean.sql
+	docker exec -i postgredb psql -U admin -d chatdb -f /tmp/clean.sql
+	docker exec -i postgredb rm -f /tmp/clean.sql
+
+# ======================
 # POSTGRES CONTAINER
 # ======================
 
@@ -55,10 +65,26 @@ removedb:
 	docker rm -f postgredb
 
 
+#===================
+# REDIS
+# =================
+
+startredis:
+	docker start chatty-redis
+
+stopredis:
+	docker stop chatty-redis
+
+logsredis:
+	docker logs chatty-redis
+
+
 # ======================
 # PHONY
 # ======================
 
 .PHONY: \
 migrate-up migrate-down migrate-reset migrate-create migrate-status \
-postgresinit postgres createdb dropdb logs stopdb startdb removedb
+db-clean-data \
+postgresinit postgres createdb dropdb logs stopdb startdb removedb \
+startredis stopredis logsredis

@@ -113,3 +113,16 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 	)
 	return i, err
 }
+
+const markUserAsVerified = `-- name: MarkUserAsVerified :exec
+UPDATE users
+SET 
+    is_verified = TRUE, -- Or whatever your column name is (e.g., status = 'verified')
+    updated_at = NOW()
+WHERE email = $1
+`
+
+func (q *Queries) MarkUserAsVerified(ctx context.Context, email string) error {
+	_, err := q.db.Exec(ctx, markUserAsVerified, email)
+	return err
+}
