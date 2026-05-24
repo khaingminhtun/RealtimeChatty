@@ -11,6 +11,7 @@ import (
 
 type Mailer interface {
 	SendVerificationEmail(ctx context.Context, toEmail, otp, username string) error
+	SendPasswordResetEmail(ctx context.Context, toEmail, token, username string) error
 }
 
 type sendgridMailer struct {
@@ -183,4 +184,53 @@ func getHTMLTemplate(username, otp string) string {
 </body>
 </html>
 `, username, otp)
+}
+
+func (m *sendgridMailer) SendPasswordResetEmail(ctx context.Context, toEmail, token, username string) error {
+	from := mail.NewEmail(m.fromName, m.fromEmail)
+	subject := "Reset your RealtimeChatty Password"
+	to := mail.NewEmail(username, toEmail)
+
+	plainTextContent := fmt.Sprintf("Hello %s, use this code to reset your password: %s. It expires in 15 minutes.", username, token)
+	htmlContent := fmt.Sprintf(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f6f8; margin: 0; padding: 0; }
+        .email-container { max-width: 550px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #eef2f5; }
+        .header { background-color: #4f46e5; padding: 32px; text-align: center; }
+        .header h1 { color: #ffffff; margin: 0; font-size: 24px; }
+        .body-content { padding: 40px 32px; color: #334155; line-height: 1.6; }
+        .token-container { background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 20px; text-align: center; margin: 28px 0; }
+        .token-code { font-size: 32px; font-weight: 800; color: #4f46e5; letter-spacing: 4px; margin: 0; font-family: monospace; }
+        .footer { background-color: #f8fafc; padding: 24px 32px; text-align: center; border-top: 1px solid #eef2f5; font-size: 12px; color: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header"><h1>RealtimeChatty</h1></div>
+        <div class="body-content">
+            <h2>Password Reset Request</h2>
+            <p>Hello %s, we received a request to reset your account password. Use the secure verification token below to proceed:</p>
+            <div class="token-container"><h3 class="token-code">%s</h3></div>
+            <p>This recovery token is strictly confidential and will expire in <strong>15 minutes</strong>.</p>
+            <p style="font-size:13px; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:16px;">If you didn't request a password modifications, you can safely ignore this email.</p>
+        </div>
+        <div class="footer"><p>&copy; 2026 RealtimeChatty. All rights reserved.</p></div>
+    </div>
+</body>
+</html>
+`, username, token)
+
+	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
+	response, err := m.client.SendWithContext(ctx, message)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode >= 400 {
+		return fmt.Errorf("sendgrid reset dispatch failed with code: %d", response.StatusCode)
+	}
+	return nil
 }

@@ -41,6 +41,7 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 }
 
 // VerifyOTPHandler handles POST /api/v1/auth/verify-otp
+// VerifyOTPHandler handles POST /api/v1/auth/verify-otp
 func (h *AuthHandler) VerifyOTPHandler(c *gin.Context) {
 	var req VerifyOTPRequest
 
@@ -49,47 +50,17 @@ func (h *AuthHandler) VerifyOTPHandler(c *gin.Context) {
 		return
 	}
 
-	// Extract device fingerprints using Gin context abstractions
-	metadata := extractClientMetadata(c)
-
-	response, err := h.authService.VerifyOTP(c.Request.Context(), req.Email, req.OTP, metadata)
+	// No metadata needed here anymore since we aren't creating a session yet!
+	err := h.authService.VerifyOTP(c.Request.Context(), req.Email, req.OTP)
 	if err != nil {
-		// 401 Unauthorized for expired or wrong tokens
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.SetCookie(
-		"refresh_token",
-		response.RefreshToken,
-		response.RefreshTokenExpiry,
-		"/",
-		"",
-		true,
-		true,
-	)
-
-	c.SetCookie(
-		"session_token",
-		response.SessionToken,
-		response.SessionTokenExpiry,
-		"/",
-		"",
-		true,
-		true,
-	)
-
-	// 3. Construct the clean JSON response payload (Omitting raw long-lived tokens)
-	jsonPayload := VerifyOTPUserResponse{
-		UserID:      response.UserID,
-		Username:    response.Username,
-		Email:       response.Email,
-		DisplayName: response.DisplayName,
-		AccessToken: response.AccessToken,
-	}
-
-	// 4. Return operational access token and user profile via JSON
-	c.JSON(http.StatusOK, jsonPayload)
+	// Tell the frontend verification succeeded so it can redirect to login
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Email verified successfully! You can now log in to your account.",
+	})
 }
 
 func (h *AuthHandler) ResendOTPHandler(c *gin.Context) {
@@ -113,6 +84,92 @@ func (h *AuthHandler) ResendOTPHandler(c *gin.Context) {
 	})
 }
 
+// LoginHandler handles POST /api/v1/auth/login
+func (h *AuthHandler) LoginHandler(c *gin.Context) {
+	var req LoginRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "A valid email address and password are required"})
+		return
+	}
+
+	metadata := extractClientMetadata(c)
+
+	// Call service layer (still returns the full token info internally)
+	authData, err := h.authService.Login(c.Request.Context(), &req, metadata)
+	if err != nil {
+		if err.Error() == "please verify your email address before logging in" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.SetCookie(
+		"refresh_token",             // Cookie Name
+		authData.RefreshToken,       // Token Value
+		authData.RefreshTokenExpiry, // Expiry MaxAge in seconds
+		"/",                         // Path scope
+		"",                          // Domain (empty defaults to current host)
+		false,                       // Secure flag (Set to TRUE in production for HTTPS!)
+		true,                        // HttpOnly flag (CRITICAL: Prevents JS reading the token)
+	)
+
+	c.SetCookie(
+		"session_token",             // Cookie Name
+		authData.SessionToken,       // Token Value
+		authData.SessionTokenExpiry, // Expiry MaxAge in seconds
+		"/",                         // Path scope
+		"",                          // Domain
+		false,                       // Secure flag (Set to TRUE in production for HTTPS!)
+		true,                        // HttpOnly flag (CRITICAL)
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"user_id":      authData.UserID,
+		"username":     authData.Username,
+		"email":        authData.Email,
+		"display_name": authData.DisplayName,
+		"access_token": authData.AccessToken, // Sent directly in JSON
+	})
+}
+
+// ForgotPasswordHandler handles POST /api/v1/auth/forgot-password
+func (h *AuthHandler) ForgotPasswordHandler(c *gin.Context) {
+	var req ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "A valid account email is required"})
+		return
+	}
+
+	_ = h.authService.ForgotPassword(c.Request.Context(), req.Email)
+
+	// Always return 200 OK with the exact same message to protect user privacy!
+	c.JSON(http.StatusOK, gin.H{
+		"message": "If that email matches an account, a secure recovery code has been dispatched.",
+	})
+}
+
+// ResetPasswordHandler handles POST /api/v1/auth/reset-password
+func (h *AuthHandler) ResetPasswordHandler(c *gin.Context) {
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.authService.ResetPassword(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Password updated successfully. You can now log in using your new credentials.",
+	})
+}
+
 // Private helper to extract user device fingerprints using Gin abstractions
 func extractClientMetadata(c *gin.Context) ClientMetadata {
 	// Gin's ClientIP automatically handles tracking proxy chains (X-Forwarded-For, X-Real-IP)
@@ -128,5 +185,3 @@ func extractClientMetadata(c *gin.Context) ClientMetadata {
 		UserAgent:  c.Request.UserAgent(),
 	}
 }
-
-

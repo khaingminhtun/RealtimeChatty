@@ -1,14 +1,13 @@
 package auth
 
 type RegisterRequest struct {
-	Username    string         `json:"username" binding:"required,min=3,max=32,alphanum"`
-	Email       string         `json:"email" binding:"required,email,max=255"`
-	Password    string         `json:"password" binding:"required,min=8,max=72"`
-	DisplayName string         `json:"displayName" binding:"omitempty,max=80"`
-	Metadata    ClientMetadata `json:"metadata"`
+	Username    string `json:"username" binding:"required,min=3,max=32,alphanum"`
+	Email       string `json:"email" binding:"required,email,max=255"`
+	Password    string `json:"password" binding:"required,min=8,max=72"`
+	DisplayName string `json:"displayName" binding:"omitempty,max=80"`
 }
 
-type RegisterResponse struct {
+type LoginResponse struct {
 	UserID             int64  `json:"userId"`
 	Username           string `json:"username"`
 	Email              string `json:"email"`
@@ -32,14 +31,22 @@ type VerifyOTPRequest struct {
 	OTP   string `json:"otp"`
 }
 
-type VerifyOTPUserResponse struct {
-	UserID      int64  `json:"user_id"`
-	Username    string `json:"username"`
-	Email       string `json:"email"`
-	DisplayName string `json:"display_name"`
-	AccessToken string `json:"access_token"`
-}
-
 type ResendOTPRequest struct {
 	Email string `json:"email" binding:"required,email"`
+}
+
+type LoginRequest struct {
+	Email    string         `json:"email" binding:"required,email"`
+	Password string         `json:"password" binding:"required"`
+	Metadata ClientMetadata `json:"metadata"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Email       string `json:"email" binding:"required,email"`
+	Token       string `json:"token" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
 }

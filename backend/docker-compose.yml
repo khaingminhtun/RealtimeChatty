@@ -1,0 +1,53 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: release
+    container_name: relio-backend
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migration
+    container_name: relio-migrate
+    env_file:
+      - .env.production
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: relio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: chatdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: relio-redis
+    restart: unless-stopped
+    command: redis-server --requirepass redis090517
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:

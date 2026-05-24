@@ -23,6 +23,8 @@ type AuthRepository interface {
 
 	// Session Queries
 	CreateSession(ctx context.Context, arg db.CreateSessionParams) (db.Session, error)
+
+	UpdateUserPassword(ctx context.Context, arg db.UpdateUserPasswordParams) error
 }
 
 type authRepository struct {
@@ -90,4 +92,8 @@ func (r *authRepository) CreateRefreshToken(ctx context.Context, arg db.CreateRe
 
 func (r *authRepository) CreateSession(ctx context.Context, arg db.CreateSessionParams) (db.Session, error) {
 	return r.q.CreateSession(ctx, arg)
+}
+
+func (r *authRepository) UpdateUserPassword(ctx context.Context, arg db.UpdateUserPasswordParams) error {
+	return r.q.UpdateUserPassword(ctx, arg)
 }
