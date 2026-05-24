@@ -84,6 +84,35 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, username, email, display_name, avatar_url, bio, timezone, is_verified, is_active, privacy_setting, notifications_enabled, push_token, last_seen_at, created_at, updated_at
+FROM users
+WHERE id = $1 AND is_active = TRUE LIMIT 1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.DisplayName,
+		&i.AvatarUrl,
+		&i.Bio,
+		&i.Timezone,
+		&i.IsVerified,
+		&i.IsActive,
+		&i.PrivacySetting,
+		&i.NotificationsEnabled,
+		&i.PushToken,
+		&i.LastSeenAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT id, username, email, display_name, avatar_url, bio, timezone, is_verified, is_active, privacy_setting, notifications_enabled, push_token, last_seen_at, created_at, updated_at
 FROM users
@@ -125,4 +154,66 @@ WHERE email = $1
 func (q *Queries) MarkUserAsVerified(ctx context.Context, email string) error {
 	_, err := q.db.Exec(ctx, markUserAsVerified, email)
 	return err
+}
+
+const softDeleteUser = `-- name: SoftDeleteUser :exec
+UPDATE users
+SET 
+    is_active = FALSE,
+    updated_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) SoftDeleteUser(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, softDeleteUser, id)
+	return err
+}
+
+const updateUserProfile = `-- name: UpdateUserProfile :one
+UPDATE users
+SET 
+    display_name = COALESCE($2, display_name),
+    avatar_url = COALESCE($3, avatar_url),
+    timezone = COALESCE($4, timezone),
+    push_token = COALESCE($5, push_token),
+    updated_at = NOW()
+WHERE id = $1 AND is_active = TRUE
+RETURNING id, username, email, display_name, avatar_url, bio, timezone, is_verified, is_active, privacy_setting, notifications_enabled, push_token, last_seen_at, created_at, updated_at
+`
+
+type UpdateUserProfileParams struct {
+	ID          int64       `json:"id"`
+	DisplayName pgtype.Text `json:"display_name"`
+	AvatarUrl   pgtype.Text `json:"avatar_url"`
+	Timezone    pgtype.Text `json:"timezone"`
+	PushToken   pgtype.Text `json:"push_token"`
+}
+
+func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserProfile,
+		arg.ID,
+		arg.DisplayName,
+		arg.AvatarUrl,
+		arg.Timezone,
+		arg.PushToken,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.DisplayName,
+		&i.AvatarUrl,
+		&i.Bio,
+		&i.Timezone,
+		&i.IsVerified,
+		&i.IsActive,
+		&i.PrivacySetting,
+		&i.NotificationsEnabled,
+		&i.PushToken,
+		&i.LastSeenAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

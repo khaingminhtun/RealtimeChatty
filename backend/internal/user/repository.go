@@ -20,8 +20,9 @@ type UserRepository interface {
 		ctx context.Context,
 		username string,
 	) (db.User, error)
-
-	
+	GetProfile(ctx context.Context, userID int64) (db.User, error)
+	UpdateProfile(ctx context.Context, arg db.UpdateUserProfileParams) (db.User, error)
+	Delete(ctx context.Context, id int64) error
 }
 
 type userRepository struct {
@@ -53,4 +54,14 @@ func (r *userRepository) GetUserByUsername(
 	return r.q.GetUserByUsername(ctx, username)
 }
 
+func (r *userRepository) GetProfile(ctx context.Context, userID int64) (db.User, error) {
+	return r.q.GetUserByID(ctx, userID)
+}
 
+func (r *userRepository) UpdateProfile(ctx context.Context, arg db.UpdateUserProfileParams) (db.User, error) {
+	return r.q.UpdateUserProfile(ctx, arg)
+}
+
+func (r *userRepository) Delete(ctx context.Context, id int64) error {
+	return r.q.SoftDeleteUser(ctx, id)
+}
