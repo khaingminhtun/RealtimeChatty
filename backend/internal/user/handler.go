@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/khaingminhtun/realtimechatty/internal/pkg/contextutils"
 )
 
 type UserHandler struct {
@@ -16,9 +17,9 @@ func NewUserHandler(s UserService) *UserHandler {
 
 // GET /api/v1/users/meauth
 func (h *UserHandler) GetMe(c *gin.Context) {
-	userID, exists := GetUserID(c)
+	userID, exists := contextutils.GetUserID(c)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
@@ -33,9 +34,9 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 
 // PATCH /api/v1/users/meauth
 func (h *UserHandler) UpdateMe(c *gin.Context) {
-	userID, exists := GetUserID(c)
+	userID, exists := contextutils.GetUserID(c)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
@@ -64,9 +65,9 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 
 // DELETE /api/v1/users/meauth
 func (h *UserHandler) DeleteMe(c *gin.Context) {
-	userID, exists := GetUserID(c)
+	userID, exists := contextutils.GetUserID(c)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 

@@ -9,6 +9,7 @@ import (
 	"github.com/khaingminhtun/realtimechatty/internal/db"
 	"github.com/khaingminhtun/realtimechatty/internal/mail"
 	middleware "github.com/khaingminhtun/realtimechatty/internal/middlewares"
+	"github.com/khaingminhtun/realtimechatty/internal/relationships"
 	"github.com/khaingminhtun/realtimechatty/internal/router"
 	"github.com/khaingminhtun/realtimechatty/internal/user"
 )
@@ -23,6 +24,7 @@ func NewApp(pool *pgxpool.Pool, redis *redis.Client) *App {
 
 	userRepo := user.NewUserRepository(queries)
 	authRepo := auth.NewAuthRepository(pool)
+	relationshiprepo := relationships.NewRelationShipRepository(queries)
 
 	tokenManager := auth.NewTokenManager()
 	mailer := mail.NewSendGridMailer()
@@ -31,16 +33,19 @@ func NewApp(pool *pgxpool.Pool, redis *redis.Client) *App {
 
 	authSvc := auth.NewAuthService(userRepo, authRepo, *tokenManager, mailer, redis)
 	userSvc := user.NewUserService(userRepo)
+	relationshipservice := relationships.NewRelationshipService(relationshiprepo)
 
 	authHandler := auth.NewAuthHandler(authSvc)
 	userHandler := user.NewUserHandler(userSvc)
+	relationshipHandler := relationships.NewHandler(relationshipservice)
 
 	// IMPORTANT: must be used immediately
 	r := router.SetupRouter(
 		router.Handlers{
-			AuthHandler:    authHandler,
-			UserHandler:    userHandler,
-			AuthMiddleware: authGuard,
+			AuthHandler:         authHandler,
+			UserHandler:         userHandler,
+			RelationshipHandler: relationshipHandler,
+			AuthMiddleware:      authGuard,
 		},
 	)
 

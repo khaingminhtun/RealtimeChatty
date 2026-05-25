@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -214,6 +215,7 @@ func (s *authService) Login(ctx context.Context, req *LoginRequest, metadata Cli
 	// 1. Fetch user profile from the database by email
 	dbUser, err := s.userRepo.GetUserByEmail(ctx, req.Email)
 	if err != nil {
+		log.Printf("[DEBUG LOGIN ERROR] Step 1 Failed: %v", err)
 		return LoginResponse{}, errors.New("invalid email address or password provided")
 	}
 
@@ -225,13 +227,15 @@ func (s *authService) Login(ctx context.Context, req *LoginRequest, metadata Cli
 	// 3. Fetch hashed authentication secrets
 	userAuth, err := s.authRepo.GetUserAuthByUserID(ctx, dbUser.ID)
 	if err != nil {
-		return LoginResponse{}, errors.New("invalid email address or password provided")
+		log.Printf("[DEBUG LOGIN ERROR] Step 1 Failed: %v", err)
+		return LoginResponse{}, errors.New("valid email address or password provided")
 	}
 
 	// 4. Validate incoming password against the hashed string in the database
-	err = CheckPassword(userAuth.PasswordHash, req.Password)
+	err = CheckPassword(req.Password, userAuth.PasswordHash)
 	if err != nil {
-		return LoginResponse{}, errors.New("invalid email address or password provided")
+		log.Printf("[DEBUG LOGIN ERROR] Step 1 Failed: %v", err)
+		return LoginResponse{}, errors.New("valid email address or password provided")
 	}
 
 	var res LoginResponse

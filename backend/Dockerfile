@@ -29,12 +29,36 @@ ENTRYPOINT ["/backendapp"]
 # STAGE 3: The Dedicated  Migration Image
 FROM golang:1.26-alpine AS migration
 
+RUN apk add --no-cache git
+
 RUN go install github.com/pressly/goose/v3/cmd/goose@latest
 
 ENV PATH="/root/go/bin:${PATH}"
 
 WORKDIR /migrations
 
-COPY --from=builder /app/db/migrations .
+COPY db/migrations ./db/migrations
 
-ENTRYPOINT ["sh", "-c", "goose postgres \"$DATABASE_URL\" up -v"]
+ENTRYPOINT ["sh", "-c", "goose -dir db/migrations postgres \"$DATABASE_URL\" up -v"]
+
+# ======================
+# STAGE 4: DEV (AIR HOT RELOAD)
+# ======================
+FROM golang:1.26-alpine AS dev
+
+RUN apk add --no-cache git bash
+
+RUN go install github.com/air-verse/air@latest
+
+ENV PATH="/root/go/bin:${PATH}"
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+EXPOSE 8080
+
+CMD ["air"]

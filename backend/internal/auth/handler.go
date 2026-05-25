@@ -103,6 +103,7 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+
 		return
 	}
 

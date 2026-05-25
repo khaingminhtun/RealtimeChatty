@@ -24,9 +24,33 @@ func NewTimestamp(t time.Time) pgtype.Timestamp {
 func ParseIPAddress(ipStr string) *netip.Addr {
 	addr, err := netip.ParseAddr(ipStr)
 	if err != nil {
-		// If parsing fails (e.g., empty string or invalid input), return nil
-		// so Postgres safely registers it as a NULL database column.
 		return nil
 	}
 	return &addr
+}
+
+// NewDate converts a time.Time object directly into a valid pgtype.Date
+func NewDate(t time.Time) pgtype.Date {
+	return pgtype.Date{
+		Time:  t,
+		Valid: true,
+	}
+}
+
+// ParseDateString takes a "YYYY-MM-DD" string and converts it to pgtype.Date.
+// If the string is empty or invalid, it gracefully returns an invalid (NULL) pgtype.Date.
+func ParseDateString(dateStr string) pgtype.Date {
+	if dateStr == "" {
+		return pgtype.Date{Valid: false}
+	}
+
+	parsedTime, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return pgtype.Date{Valid: false}
+	}
+
+	return pgtype.Date{
+		Time:  parsedTime,
+		Valid: true,
+	}
 }

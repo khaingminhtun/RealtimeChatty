@@ -9,6 +9,9 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible // indirect
 	github.com/redis/go-redis v6.15.9+incompatible // indirect
 	go.uber.org/atomic v1.11.0 // indirect
+	go.uber.org/multierr v1.7.0 // indirect
+	go.uber.org/zap v1.19.0 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 )
 
 require (
@@ -37,6 +40,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/pingcap/log v1.1.0
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/redis/go-redis/v9 v9.19.0

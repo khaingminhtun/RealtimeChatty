@@ -10,6 +10,38 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type MediaFile struct {
+	ID              int64            `json:"id"`
+	UserID          int64            `json:"user_id"`
+	RelationshipID  pgtype.Int8      `json:"relationship_id"`
+	TimelineEntryID pgtype.Int8      `json:"timeline_entry_id"`
+	StorageKey      string           `json:"storage_key"`
+	Category        pgtype.Text      `json:"category"`
+	MimeType        pgtype.Text      `json:"mime_type"`
+	SizeBytes       pgtype.Int8      `json:"size_bytes"`
+	Shared          bool             `json:"shared"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+	DeletedAt       pgtype.Timestamp `json:"deleted_at"`
+}
+
+type Mood struct {
+	ID              int64            `json:"id"`
+	UserID          int64            `json:"user_id"`
+	TimelineEntryID int64            `json:"timeline_entry_id"`
+	Label           string           `json:"label"`
+	Score           pgtype.Int4      `json:"score"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+}
+
+type PrivateNote struct {
+	ID             int64            `json:"id"`
+	UserID         int64            `json:"user_id"`
+	RelationshipID int64            `json:"relationship_id"`
+	Content        string           `json:"content"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
+}
+
 type RefreshToken struct {
 	ID        int64            `json:"id"`
 	UserID    int64            `json:"user_id"`
@@ -18,6 +50,21 @@ type RefreshToken struct {
 	IsRevoked pgtype.Bool      `json:"is_revoked"`
 	ExpiresAt pgtype.Timestamp `json:"expires_at"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+type Relationship struct {
+	ID            int64            `json:"id"`
+	OwnerID       int64            `json:"owner_id"`
+	Name          string           `json:"name"`
+	Type          pgtype.Text      `json:"type"`
+	HowWeMet      pgtype.Text      `json:"how_we_met"`
+	Birthday      pgtype.Date      `json:"birthday"`
+	Location      pgtype.Text      `json:"location"`
+	Tags          []string         `json:"tags"`
+	LastContactAt pgtype.Timestamp `json:"last_contact_at"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+	DeletedAt     pgtype.Timestamp `json:"deleted_at"`
 }
 
 type Session struct {
@@ -31,6 +78,20 @@ type Session struct {
 	IsActive   pgtype.Bool      `json:"is_active"`
 	ExpiresAt  pgtype.Timestamp `json:"expires_at"`
 	CreatedAt  pgtype.Timestamp `json:"created_at"`
+}
+
+type TimelineEntry struct {
+	ID             int64            `json:"id"`
+	RelationshipID int64            `json:"relationship_id"`
+	UserID         int64            `json:"user_id"`
+	EntryType      string           `json:"entry_type"`
+	Title          string           `json:"title"`
+	Body           pgtype.Text      `json:"body"`
+	MoodTag        pgtype.Text      `json:"mood_tag"`
+	EntryDate      pgtype.Date      `json:"entry_date"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
+	DeletedAt      pgtype.Timestamp `json:"deleted_at"`
 }
 
 type User struct {
