@@ -25,3 +25,14 @@ type RelationshipResponseDTO struct {
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 }
+
+type UpdateRelationshipDTO struct {
+	ID        int64
+	OwnerID   int64
+	Name      *string
+	Type      *string
+	HowWeMet  *string
+	Birthday  *time.Time
+	Location  *string
+	AvatarURL *string
+}

@@ -11,8 +11,8 @@ func UserRoutes(rg *gin.RouterGroup, h *UserHandler, authMiddleware gin.HandlerF
 		// Inject the JWT protection middleware explicitly across this group
 		userGroup.Use(authMiddleware)
 
-		userGroup.GET("/meauth", h.GetMe)
-		userGroup.PATCH("/meauth", h.UpdateMe)
-		userGroup.DELETE("/meauth", h.DeleteMe)
+		userGroup.GET("/me", h.GetMe)
+		userGroup.PATCH("/me", h.UpdateMe)
+		userGroup.DELETE("/me", h.DeleteMe)
 	}
 }

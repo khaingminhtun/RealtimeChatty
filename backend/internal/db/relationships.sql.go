@@ -64,6 +64,21 @@ func (q *Queries) CreateRelationship(ctx context.Context, arg CreateRelationship
 	return i, err
 }
 
+const deleteRelationship = `-- name: DeleteRelationship :exec
+DELETE FROM relationships
+WHERE id = $1 AND owner_id = $2
+`
+
+type DeleteRelationshipParams struct {
+	ID      int64 `json:"id"`
+	OwnerID int64 `json:"owner_id"`
+}
+
+func (q *Queries) DeleteRelationship(ctx context.Context, arg DeleteRelationshipParams) error {
+	_, err := q.db.Exec(ctx, deleteRelationship, arg.ID, arg.OwnerID)
+	return err
+}
+
 const getRelationshipByID = `-- name: GetRelationshipByID :one
 SELECT id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, last_contact_at, created_at, updated_at
 FROM relationships
@@ -96,7 +111,7 @@ func (q *Queries) GetRelationshipByID(ctx context.Context, arg GetRelationshipBy
 }
 
 const listRelationships = `-- name: ListRelationships :many
-SELECT id, owner_id, name, type, birthday, tags, last_contact_at, created_at
+SELECT id, owner_id, name, type, how_we_met, location, birthday, tags, last_contact_at, created_at
 FROM relationships
 WHERE owner_id = $1 
   AND ($2::text = '' OR type = $2)
@@ -113,6 +128,8 @@ type ListRelationshipsRow struct {
 	OwnerID       int64              `json:"owner_id"`
 	Name          string             `json:"name"`
 	Type          pgtype.Text        `json:"type"`
+	HowWeMet      pgtype.Text        `json:"how_we_met"`
+	Location      pgtype.Text        `json:"location"`
 	Birthday      pgtype.Date        `json:"birthday"`
 	Tags          []string           `json:"tags"`
 	LastContactAt pgtype.Timestamptz `json:"last_contact_at"`
@@ -133,6 +150,8 @@ func (q *Queries) ListRelationships(ctx context.Context, arg ListRelationshipsPa
 			&i.OwnerID,
 			&i.Name,
 			&i.Type,
+			&i.HowWeMet,
+			&i.Location,
 			&i.Birthday,
 			&i.Tags,
 			&i.LastContactAt,
@@ -146,4 +165,58 @@ func (q *Queries) ListRelationships(ctx context.Context, arg ListRelationshipsPa
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateRelationship = `-- name: UpdateRelationship :one
+UPDATE relationships
+SET 
+    name = COALESCE($3, name),
+    type = COALESCE($4, type),
+    how_we_met = COALESCE($5, how_we_met),
+    birthday = COALESCE($6, birthday),
+    location = COALESCE($7, location),
+    avatar_url = COALESCE($8, avatar_url),
+    updated_at = NOW()
+WHERE id = $1 AND owner_id = $2
+RETURNING id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, last_contact_at, created_at, updated_at
+`
+
+type UpdateRelationshipParams struct {
+	ID        int64       `json:"id"`
+	OwnerID   int64       `json:"owner_id"`
+	Name      pgtype.Text `json:"name"`
+	Type      pgtype.Text `json:"type"`
+	HowWeMet  pgtype.Text `json:"how_we_met"`
+	Birthday  pgtype.Date `json:"birthday"`
+	Location  pgtype.Text `json:"location"`
+	AvatarUrl pgtype.Text `json:"avatar_url"`
+}
+
+func (q *Queries) UpdateRelationship(ctx context.Context, arg UpdateRelationshipParams) (Relationship, error) {
+	row := q.db.QueryRow(ctx, updateRelationship,
+		arg.ID,
+		arg.OwnerID,
+		arg.Name,
+		arg.Type,
+		arg.HowWeMet,
+		arg.Birthday,
+		arg.Location,
+		arg.AvatarUrl,
+	)
+	var i Relationship
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.Type,
+		&i.HowWeMet,
+		&i.Birthday,
+		&i.Location,
+		&i.AvatarUrl,
+		&i.Tags,
+		&i.LastContactAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
