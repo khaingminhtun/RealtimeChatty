@@ -10,6 +10,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Contact struct {
+	ID             int64              `json:"id"`
+	RelationshipID int64              `json:"relationship_id"`
+	UserID         int64              `json:"user_id"`
+	Channel        string             `json:"channel"`
+	Note           pgtype.Text        `json:"note"`
+	ContactedAt    pgtype.Timestamptz `json:"contacted_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+}
+
 type MediaFile struct {
 	ID              int64            `json:"id"`
 	UserID          int64            `json:"user_id"`
@@ -34,50 +44,50 @@ type Mood struct {
 }
 
 type PrivateNote struct {
-	ID             int64            `json:"id"`
-	UserID         int64            `json:"user_id"`
-	RelationshipID int64            `json:"relationship_id"`
-	Content        string           `json:"content"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
+	ID             int64              `json:"id"`
+	UserID         int64              `json:"user_id"`
+	RelationshipID int64              `json:"relationship_id"`
+	Content        string             `json:"content"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
 type RefreshToken struct {
-	ID        int64            `json:"id"`
-	UserID    int64            `json:"user_id"`
-	SessionID int64            `json:"session_id"`
-	TokenHash string           `json:"token_hash"`
-	IsRevoked pgtype.Bool      `json:"is_revoked"`
-	ExpiresAt pgtype.Timestamp `json:"expires_at"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
+	ID        int64              `json:"id"`
+	UserID    int64              `json:"user_id"`
+	SessionID int64              `json:"session_id"`
+	TokenHash string             `json:"token_hash"`
+	IsRevoked pgtype.Bool        `json:"is_revoked"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
 type Relationship struct {
-	ID            int64            `json:"id"`
-	OwnerID       int64            `json:"owner_id"`
-	Name          string           `json:"name"`
-	Type          pgtype.Text      `json:"type"`
-	HowWeMet      pgtype.Text      `json:"how_we_met"`
-	Birthday      pgtype.Date      `json:"birthday"`
-	Location      pgtype.Text      `json:"location"`
-	Tags          []string         `json:"tags"`
-	LastContactAt pgtype.Timestamp `json:"last_contact_at"`
-	CreatedAt     pgtype.Timestamp `json:"created_at"`
-	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
-	DeletedAt     pgtype.Timestamp `json:"deleted_at"`
+	ID            int64              `json:"id"`
+	OwnerID       int64              `json:"owner_id"`
+	Name          string             `json:"name"`
+	Type          pgtype.Text        `json:"type"`
+	HowWeMet      pgtype.Text        `json:"how_we_met"`
+	Birthday      pgtype.Date        `json:"birthday"`
+	Location      pgtype.Text        `json:"location"`
+	AvatarUrl     pgtype.Text        `json:"avatar_url"`
+	Tags          []string           `json:"tags"`
+	LastContactAt pgtype.Timestamptz `json:"last_contact_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Session struct {
-	ID         int64            `json:"id"`
-	UserID     int64            `json:"user_id"`
-	TokenHash  string           `json:"token_hash"`
-	DeviceName pgtype.Text      `json:"device_name"`
-	DeviceType pgtype.Text      `json:"device_type"`
-	IpAddress  *netip.Addr      `json:"ip_address"`
-	UserAgent  pgtype.Text      `json:"user_agent"`
-	IsActive   pgtype.Bool      `json:"is_active"`
-	ExpiresAt  pgtype.Timestamp `json:"expires_at"`
-	CreatedAt  pgtype.Timestamp `json:"created_at"`
+	ID         int64              `json:"id"`
+	UserID     int64              `json:"user_id"`
+	TokenHash  string             `json:"token_hash"`
+	DeviceName pgtype.Text        `json:"device_name"`
+	DeviceType pgtype.Text        `json:"device_type"`
+	IpAddress  *netip.Addr        `json:"ip_address"`
+	UserAgent  pgtype.Text        `json:"user_agent"`
+	IsActive   pgtype.Bool        `json:"is_active"`
+	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 type TimelineEntry struct {
@@ -95,32 +105,32 @@ type TimelineEntry struct {
 }
 
 type User struct {
-	ID                   int64            `json:"id"`
-	Username             string           `json:"username"`
-	Email                string           `json:"email"`
-	DisplayName          pgtype.Text      `json:"display_name"`
-	AvatarUrl            pgtype.Text      `json:"avatar_url"`
-	Bio                  pgtype.Text      `json:"bio"`
-	Timezone             pgtype.Text      `json:"timezone"`
-	IsVerified           pgtype.Bool      `json:"is_verified"`
-	IsActive             pgtype.Bool      `json:"is_active"`
-	PrivacySetting       pgtype.Text      `json:"privacy_setting"`
-	NotificationsEnabled pgtype.Bool      `json:"notifications_enabled"`
-	PushToken            pgtype.Text      `json:"push_token"`
-	LastSeenAt           pgtype.Timestamp `json:"last_seen_at"`
-	CreatedAt            pgtype.Timestamp `json:"created_at"`
-	UpdatedAt            pgtype.Timestamp `json:"updated_at"`
+	ID                   int64              `json:"id"`
+	Username             string             `json:"username"`
+	Email                string             `json:"email"`
+	DisplayName          pgtype.Text        `json:"display_name"`
+	AvatarUrl            pgtype.Text        `json:"avatar_url"`
+	Bio                  pgtype.Text        `json:"bio"`
+	Timezone             pgtype.Text        `json:"timezone"`
+	IsVerified           pgtype.Bool        `json:"is_verified"`
+	IsActive             pgtype.Bool        `json:"is_active"`
+	PrivacySetting       pgtype.Text        `json:"privacy_setting"`
+	NotificationsEnabled pgtype.Bool        `json:"notifications_enabled"`
+	PushToken            pgtype.Text        `json:"push_token"`
+	LastSeenAt           pgtype.Timestamptz `json:"last_seen_at"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
 }
 
 type UserAuth struct {
-	ID                int64            `json:"id"`
-	UserID            int64            `json:"user_id"`
-	PasswordHash      string           `json:"password_hash"`
-	MfaEnabled        pgtype.Bool      `json:"mfa_enabled"`
-	MfaSecret         pgtype.Text      `json:"mfa_secret"`
-	FailedAttempts    pgtype.Int4      `json:"failed_attempts"`
-	LockedUntil       pgtype.Timestamp `json:"locked_until"`
-	PasswordChangedAt pgtype.Timestamp `json:"password_changed_at"`
-	CreatedAt         pgtype.Timestamp `json:"created_at"`
-	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+	ID                int64              `json:"id"`
+	UserID            int64              `json:"user_id"`
+	PasswordHash      string             `json:"password_hash"`
+	MfaEnabled        pgtype.Bool        `json:"mfa_enabled"`
+	MfaSecret         pgtype.Text        `json:"mfa_secret"`
+	FailedAttempts    pgtype.Int4        `json:"failed_attempts"`
+	LockedUntil       pgtype.Timestamptz `json:"locked_until"`
+	PasswordChangedAt pgtype.Timestamptz `json:"password_changed_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
 }

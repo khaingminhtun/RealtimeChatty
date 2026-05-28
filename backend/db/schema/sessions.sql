@@ -13,7 +13,7 @@ CREATE TABLE sessions (
 
     is_active BOOLEAN DEFAULT TRUE,
 
-    expires_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
 
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );

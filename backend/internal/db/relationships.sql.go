@@ -21,9 +21,9 @@ INSERT INTO relationships (
     location, 
     tags
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6,$7 
 )
-RETURNING id, owner_id, name, type, how_we_met, birthday, location, tags, last_contact_at, created_at, updated_at, deleted_at
+RETURNING id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, last_contact_at, created_at, updated_at
 `
 
 type CreateRelationshipParams struct {
@@ -55,11 +55,95 @@ func (q *Queries) CreateRelationship(ctx context.Context, arg CreateRelationship
 		&i.HowWeMet,
 		&i.Birthday,
 		&i.Location,
+		&i.AvatarUrl,
 		&i.Tags,
 		&i.LastContactAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const getRelationshipByID = `-- name: GetRelationshipByID :one
+SELECT id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, last_contact_at, created_at, updated_at
+FROM relationships
+WHERE id = $1 AND owner_id = $2
+`
+
+type GetRelationshipByIDParams struct {
+	ID      int64 `json:"id"`
+	OwnerID int64 `json:"owner_id"`
+}
+
+func (q *Queries) GetRelationshipByID(ctx context.Context, arg GetRelationshipByIDParams) (Relationship, error) {
+	row := q.db.QueryRow(ctx, getRelationshipByID, arg.ID, arg.OwnerID)
+	var i Relationship
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.Type,
+		&i.HowWeMet,
+		&i.Birthday,
+		&i.Location,
+		&i.AvatarUrl,
+		&i.Tags,
+		&i.LastContactAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listRelationships = `-- name: ListRelationships :many
+SELECT id, owner_id, name, type, birthday, tags, last_contact_at, created_at
+FROM relationships
+WHERE owner_id = $1 
+  AND ($2::text = '' OR type = $2)
+ORDER BY last_contact_at DESC NULLS LAST, created_at DESC
+`
+
+type ListRelationshipsParams struct {
+	OwnerID int64  `json:"owner_id"`
+	Column2 string `json:"column_2"`
+}
+
+type ListRelationshipsRow struct {
+	ID            int64              `json:"id"`
+	OwnerID       int64              `json:"owner_id"`
+	Name          string             `json:"name"`
+	Type          pgtype.Text        `json:"type"`
+	Birthday      pgtype.Date        `json:"birthday"`
+	Tags          []string           `json:"tags"`
+	LastContactAt pgtype.Timestamptz `json:"last_contact_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) ListRelationships(ctx context.Context, arg ListRelationshipsParams) ([]ListRelationshipsRow, error) {
+	rows, err := q.db.Query(ctx, listRelationships, arg.OwnerID, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRelationshipsRow
+	for rows.Next() {
+		var i ListRelationshipsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OwnerID,
+			&i.Name,
+			&i.Type,
+			&i.Birthday,
+			&i.Tags,
+			&i.LastContactAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

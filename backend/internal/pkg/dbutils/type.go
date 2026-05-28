@@ -14,9 +14,9 @@ func NewText(s string) pgtype.Text {
 	}
 }
 
-func NewTimestamp(t time.Time) pgtype.Timestamp {
-	return pgtype.Timestamp{
-		Time:  t,
+func NewTimestamp(t time.Time) pgtype.Timestamptz {
+	return pgtype.Timestamptz{
+		Time:  t.UTC(),
 		Valid: true,
 	}
 }

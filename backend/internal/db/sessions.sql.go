@@ -28,13 +28,13 @@ RETURNING id, user_id, token_hash, device_name, device_type, ip_address, user_ag
 `
 
 type CreateSessionParams struct {
-	UserID     int64            `json:"user_id"`
-	TokenHash  string           `json:"token_hash"`
-	DeviceName pgtype.Text      `json:"device_name"`
-	DeviceType pgtype.Text      `json:"device_type"`
-	IpAddress  *netip.Addr      `json:"ip_address"`
-	UserAgent  pgtype.Text      `json:"user_agent"`
-	ExpiresAt  pgtype.Timestamp `json:"expires_at"`
+	UserID     int64              `json:"user_id"`
+	TokenHash  string             `json:"token_hash"`
+	DeviceName pgtype.Text        `json:"device_name"`
+	DeviceType pgtype.Text        `json:"device_type"`
+	IpAddress  *netip.Addr        `json:"ip_address"`
+	UserAgent  pgtype.Text        `json:"user_agent"`
+	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
@@ -144,13 +144,13 @@ ORDER BY created_at DESC
 `
 
 type GetActiveSessionsByUserRow struct {
-	ID         int64            `json:"id"`
-	DeviceName pgtype.Text      `json:"device_name"`
-	DeviceType pgtype.Text      `json:"device_type"`
-	IpAddress  *netip.Addr      `json:"ip_address"`
-	UserAgent  pgtype.Text      `json:"user_agent"`
-	ExpiresAt  pgtype.Timestamp `json:"expires_at"`
-	CreatedAt  pgtype.Timestamp `json:"created_at"`
+	ID         int64              `json:"id"`
+	DeviceName pgtype.Text        `json:"device_name"`
+	DeviceType pgtype.Text        `json:"device_type"`
+	IpAddress  *netip.Addr        `json:"ip_address"`
+	UserAgent  pgtype.Text        `json:"user_agent"`
+	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 // Useful for showing a user a list of their "Logged-in Devices"
@@ -192,10 +192,10 @@ WHERE id = $1
 `
 
 type UpdateSessionActivityParams struct {
-	ID        int64            `json:"id"`
-	ExpiresAt pgtype.Timestamp `json:"expires_at"`
-	IpAddress *netip.Addr      `json:"ip_address"`
-	UserAgent pgtype.Text      `json:"user_agent"`
+	ID        int64              `json:"id"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	IpAddress *netip.Addr        `json:"ip_address"`
+	UserAgent pgtype.Text        `json:"user_agent"`
 }
 
 // Call this if you use a rolling session mechanism to extend expiration on use

@@ -9,7 +9,7 @@ CREATE TABLE refresh_tokens (
 
     is_revoked BOOLEAN DEFAULT FALSE,
 
-    expires_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
 
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );

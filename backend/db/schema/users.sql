@@ -19,8 +19,8 @@ CREATE TABLE users (
 
     push_token TEXT,
 
-    last_seen_at TIMESTAMP,
+    last_seen_at TIMESTAMPTZ,
 
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );

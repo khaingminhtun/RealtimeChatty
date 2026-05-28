@@ -2,8 +2,8 @@
 # CONFIG
 # ======================
 
-DB_URL=postgres://admin:secret@localhost:5433/chatdb?sslmode=disable
-MIGRATIONS_DIR=./db/migrations
+DB_URL=postgres://admin:secret@postgres:5432/chatdb?sslmode=disable
+MIGRATIONS_DIR=/app/db/migrations
 
 
 # ======================
@@ -86,19 +86,16 @@ redis-logs:
 # ======================
 
 migrate-up:
-	docker compose run --rm migrate goose -dir $(MIGRATIONS_DIR) postgres "$(DB_URL)" up
+	docker compose run --rm --entrypoint goose migrate -dir $(MIGRATIONS_DIR) postgres "$(DB_URL)" up
 
 migrate-down:
-	docker compose run --rm migrate goose -dir $(MIGRATIONS_DIR) postgres "$(DB_URL)" down
-
-migrate-reset:
-	docker compose run --rm migrate goose -dir $(MIGRATIONS_DIR) postgres "$(DB_URL)" reset
+	docker compose run --rm --entrypoint goose migrate -dir $(MIGRATIONS_DIR) postgres "$(DB_URL)" down
 
 migrate-status:
-	docker compose run --rm migrate goose -dir $(MIGRATIONS_DIR) postgres "$(DB_URL)" status
+	docker compose run --rm --entrypoint goose migrate -dir $(MIGRATIONS_DIR) postgres "$(DB_URL)" status
 
 migrate-create:
-	docker compose run --rm migrate goose -dir $(MIGRATIONS_DIR) create $(name) sql
+	docker compose run --rm --entrypoint goose migrate -dir $(MIGRATIONS_DIR) create $(name) sql
 
 # ======================
 # DATA MANAGEMENT

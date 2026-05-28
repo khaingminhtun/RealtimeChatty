@@ -6,10 +6,7 @@ CREATE TABLE private_notes (
     relationship_id BIGINT NOT NULL REFERENCES relationships(id) ON DELETE CASCADE,
 
     content TEXT NOT NULL,
-
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
-CREATE UNIQUE INDEX idx_private_notes_user_relationship
-ON private_notes(user_id, relationship_id);
