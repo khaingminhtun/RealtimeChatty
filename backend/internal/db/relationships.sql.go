@@ -11,6 +11,45 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const appendTags = `-- name: AppendTags :one
+UPDATE relationships
+SET 
+    -- USING uniq elements logic or simple array concatenation
+    tags = ARRAY(
+        SELECT DISTINCT unnest(array_cat(tags, $1::text[]))
+    ),
+    updated_at = NOW()
+WHERE id = $2 AND owner_id = $3
+RETURNING id, owner_id, name, tags, updated_at
+`
+
+type AppendTagsParams struct {
+	Column1 []string `json:"column_1"`
+	ID      int64    `json:"id"`
+	OwnerID int64    `json:"owner_id"`
+}
+
+type AppendTagsRow struct {
+	ID        int64              `json:"id"`
+	OwnerID   int64              `json:"owner_id"`
+	Name      string             `json:"name"`
+	Tags      []string           `json:"tags"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) AppendTags(ctx context.Context, arg AppendTagsParams) (AppendTagsRow, error) {
+	row := q.db.QueryRow(ctx, appendTags, arg.Column1, arg.ID, arg.OwnerID)
+	var i AppendTagsRow
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.Tags,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createRelationship = `-- name: CreateRelationship :one
 INSERT INTO relationships (
     owner_id, 
@@ -165,6 +204,78 @@ func (q *Queries) ListRelationships(ctx context.Context, arg ListRelationshipsPa
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeSingleTag = `-- name: RemoveSingleTag :one
+UPDATE relationships
+SET 
+    tags = array_remove(tags, $1::text),
+    updated_at = NOW()
+WHERE id = $2 AND owner_id = $3
+RETURNING id, owner_id, name, tags, updated_at
+`
+
+type RemoveSingleTagParams struct {
+	Column1 string `json:"column_1"`
+	ID      int64  `json:"id"`
+	OwnerID int64  `json:"owner_id"`
+}
+
+type RemoveSingleTagRow struct {
+	ID        int64              `json:"id"`
+	OwnerID   int64              `json:"owner_id"`
+	Name      string             `json:"name"`
+	Tags      []string           `json:"tags"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) RemoveSingleTag(ctx context.Context, arg RemoveSingleTagParams) (RemoveSingleTagRow, error) {
+	row := q.db.QueryRow(ctx, removeSingleTag, arg.Column1, arg.ID, arg.OwnerID)
+	var i RemoveSingleTagRow
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.Tags,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const replaceTags = `-- name: ReplaceTags :one
+UPDATE relationships
+SET 
+    tags = $1,
+    updated_at = NOW()
+WHERE id = $2 AND owner_id = $3
+RETURNING id, owner_id, name, tags, updated_at
+`
+
+type ReplaceTagsParams struct {
+	Tags    []string `json:"tags"`
+	ID      int64    `json:"id"`
+	OwnerID int64    `json:"owner_id"`
+}
+
+type ReplaceTagsRow struct {
+	ID        int64              `json:"id"`
+	OwnerID   int64              `json:"owner_id"`
+	Name      string             `json:"name"`
+	Tags      []string           `json:"tags"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) ReplaceTags(ctx context.Context, arg ReplaceTagsParams) (ReplaceTagsRow, error) {
+	row := q.db.QueryRow(ctx, replaceTags, arg.Tags, arg.ID, arg.OwnerID)
+	var i ReplaceTagsRow
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.Tags,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateRelationship = `-- name: UpdateRelationship :one

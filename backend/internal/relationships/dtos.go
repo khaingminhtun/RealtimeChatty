@@ -36,3 +36,9 @@ type UpdateRelationshipDTO struct {
 	Location  *string
 	AvatarURL *string
 }
+
+type TagsUpdateResponseDTO struct {
+	ID   int64    `json:"id"`
+	Name string   `json:"name"`
+	Tags []string `json:"tags"`
+}

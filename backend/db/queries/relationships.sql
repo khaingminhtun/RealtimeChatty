@@ -41,3 +41,31 @@ RETURNING id, owner_id, name, type, how_we_met, birthday, location, avatar_url, 
 -- name: DeleteRelationship :exec
 DELETE FROM relationships
 WHERE id = $1 AND owner_id = $2;
+
+
+-- name: ReplaceTags :one
+UPDATE relationships
+SET 
+    tags = $1,
+    updated_at = NOW()
+WHERE id = $2 AND owner_id = $3
+RETURNING id, owner_id, name, tags, updated_at;
+
+-- name: AppendTags :one
+UPDATE relationships
+SET 
+    -- USING uniq elements logic or simple array concatenation
+    tags = ARRAY(
+        SELECT DISTINCT unnest(array_cat(tags, $1::text[]))
+    ),
+    updated_at = NOW()
+WHERE id = $2 AND owner_id = $3
+RETURNING id, owner_id, name, tags, updated_at;
+
+-- name: RemoveSingleTag :one
+UPDATE relationships
+SET 
+    tags = array_remove(tags, $1::text),
+    updated_at = NOW()
+WHERE id = $2 AND owner_id = $3
+RETURNING id, owner_id, name, tags, updated_at;

@@ -167,3 +167,94 @@ func (h *RelationshipHandler) DeleteRelationship(c *gin.Context) {
 	// in private_notes and contacts are safely removed automatically!
 	c.JSON(http.StatusOK, gin.H{"message": "relationship and all cascade linked data deleted successfully"})
 }
+
+// PUT /api/v1/relationships/:id/tags
+func (h *RelationshipHandler) ReplaceTags(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid relationship ID"})
+		return
+	}
+
+	userID, exists := contextutils.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var body struct {
+		Tags []string `json:"tags" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tags array is required"})
+		return
+	}
+
+	result, err := h.svc.ReplaceTags(c.Request.Context(), id, userID, body.Tags)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+// POST /api/v1/relationships/:id/tags
+func (h *RelationshipHandler) AppendTags(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid relationship ID"})
+		return
+	}
+
+	userID, exists := contextutils.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var body struct {
+		Tags []string `json:"tags" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tags array to append is required"})
+		return
+	}
+
+	result, err := h.svc.AppendTags(c.Request.Context(), id, userID, body.Tags)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+// DELETE /api/v1/relationships/:id/tags/:tag
+func (h *RelationshipHandler) RemoveTag(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid relationship ID"})
+		return
+	}
+
+	userID, exists := contextutils.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	tagToRemove := c.Param("tag")
+	if tagToRemove == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tag param cannot be empty"})
+		return
+	}
+
+	result, err := h.svc.RemoveTag(c.Request.Context(), id, userID, tagToRemove)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}

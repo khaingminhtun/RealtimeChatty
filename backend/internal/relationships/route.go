@@ -12,5 +12,9 @@ func RelationshipRoutes(rg *gin.RouterGroup, h *RelationshipHandler, authMiddlew
 		relationshipGroup.GET("/", h.ListRelationships)        // GET /api/v1/relationships?type=friend
 		relationshipGroup.PATCH("/:id", h.UpdateRelationship)  // PATCH /api/v1/relationships/:id
 		relationshipGroup.DELETE("/:id", h.DeleteRelationship) // DELETE /api/v1/relationships/:id
+
+		relationshipGroup.PUT("/:id/tags", h.ReplaceTags)       // PUT /api/v1/relationships/:id/tags
+		relationshipGroup.POST("/:id/tags", h.AppendTags)       // POST /api/v1/relationships/:id/tags
+		relationshipGroup.DELETE("/:id/tags/:tag", h.RemoveTag) // DELETE /api/v1/relationships/:id/tags/:tag
 	}
 }

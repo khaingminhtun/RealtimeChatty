@@ -14,6 +14,11 @@ type RelationshipService interface {
 	ListRelationships(ctx context.Context, ownerID int64, relType string) ([]RelationshipResponseDTO, error)
 	UpdateRelationship(ctx context.Context, dto UpdateRelationshipDTO) (RelationshipResponseDTO, error)
 	DeleteRelationship(ctx context.Context, id int64, ownerID int64) error
+
+	//tags
+	ReplaceTags(ctx context.Context, id int64, ownerID int64, tags []string) (TagsUpdateResponseDTO, error)
+	AppendTags(ctx context.Context, id int64, ownerID int64, tags []string) (TagsUpdateResponseDTO, error)
+	RemoveTag(ctx context.Context, id int64, ownerID int64, tag string) (TagsUpdateResponseDTO, error)
 }
 
 type relationshipService struct {
@@ -105,6 +110,33 @@ func (s *relationshipService) UpdateRelationship(ctx context.Context, dto Update
 
 func (s *relationshipService) DeleteRelationship(ctx context.Context, id int64, ownerID int64) error {
 	return s.repo.Delete(ctx, id, ownerID)
+}
+
+func (s *relationshipService) ReplaceTags(ctx context.Context, id int64, ownerID int64, tags []string) (TagsUpdateResponseDTO, error) {
+	if tags == nil {
+		tags = []string{}
+	}
+	res, err := s.repo.ReplaceTags(ctx, tags, id, ownerID)
+	if err != nil {
+		return TagsUpdateResponseDTO{}, err
+	}
+	return TagsUpdateResponseDTO{ID: res.ID, Name: res.Name, Tags: res.Tags}, nil
+}
+
+func (s *relationshipService) AppendTags(ctx context.Context, id int64, ownerID int64, tags []string) (TagsUpdateResponseDTO, error) {
+	res, err := s.repo.AppendTags(ctx, tags, id, ownerID)
+	if err != nil {
+		return TagsUpdateResponseDTO{}, err
+	}
+	return TagsUpdateResponseDTO{ID: res.ID, Name: res.Name, Tags: res.Tags}, nil
+}
+
+func (s *relationshipService) RemoveTag(ctx context.Context, id int64, ownerID int64, tag string) (TagsUpdateResponseDTO, error) {
+	res, err := s.repo.RemoveTag(ctx, tag, id, ownerID)
+	if err != nil {
+		return TagsUpdateResponseDTO{}, err
+	}
+	return TagsUpdateResponseDTO{ID: res.ID, Name: res.Name, Tags: res.Tags}, nil
 }
 
 // Internal mapping logic to isolate pgx/pgtype specifics from the controller

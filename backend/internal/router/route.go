@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/khaingminhtun/realtimechatty/internal/auth"
+	"github.com/khaingminhtun/realtimechatty/internal/notes"
 	"github.com/khaingminhtun/realtimechatty/internal/relationships"
 	"github.com/khaingminhtun/realtimechatty/internal/user"
 )
@@ -11,6 +12,7 @@ type Handlers struct {
 	AuthHandler         *auth.AuthHandler
 	UserHandler         *user.UserHandler
 	RelationshipHandler *relationships.RelationshipHandler
+	NoteHandler         *notes.NoteHandler
 	AuthMiddleware      gin.HandlerFunc
 }
 
@@ -33,6 +35,12 @@ func SetupRouter(h Handlers) *gin.Engine {
 	relationships.RelationshipRoutes(
 		api,
 		h.RelationshipHandler,
+		h.AuthMiddleware,
+	)
+
+	notes.NotesRoute(
+		api,
+		h.NoteHandler,
 		h.AuthMiddleware,
 	)
 
