@@ -63,18 +63,20 @@ type RefreshToken struct {
 }
 
 type Relationship struct {
-	ID            int64              `json:"id"`
-	OwnerID       int64              `json:"owner_id"`
-	Name          string             `json:"name"`
-	Type          pgtype.Text        `json:"type"`
-	HowWeMet      pgtype.Text        `json:"how_we_met"`
-	Birthday      pgtype.Date        `json:"birthday"`
-	Location      pgtype.Text        `json:"location"`
-	AvatarUrl     pgtype.Text        `json:"avatar_url"`
-	Tags          []string           `json:"tags"`
-	LastContactAt pgtype.Timestamptz `json:"last_contact_at"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ID                int64              `json:"id"`
+	OwnerID           int64              `json:"owner_id"`
+	Name              string             `json:"name"`
+	Type              pgtype.Text        `json:"type"`
+	HowWeMet          pgtype.Text        `json:"how_we_met"`
+	Birthday          pgtype.Date        `json:"birthday"`
+	Location          pgtype.Text        `json:"location"`
+	AvatarUrl         pgtype.Text        `json:"avatar_url"`
+	Tags              []string           `json:"tags"`
+	DriftIntervalDays pgtype.Text        `json:"drift_interval_days"`
+	ReminderSent      bool               `json:"reminder_sent"`
+	LastContactAt     pgtype.Timestamptz `json:"last_contact_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Session struct {
