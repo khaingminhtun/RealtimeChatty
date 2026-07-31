@@ -58,22 +58,32 @@ INSERT INTO relationships (
     birthday, 
     location, 
     tags,
-    drift_interval_days -- Added parameter
+    drift_threshold_days,
+    next_contact_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
-RETURNING id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, drift_interval_days, reminder_sent, last_contact_at, created_at, updated_at
+RETURNING 
+    id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags,
+    drift_threshold_days,
+    drift_status,
+    warmth_score,
+    last_reminder_sent_at,
+    next_contact_at,
+    last_contact_at,
+    created_at, updated_at
 `
 
 type CreateRelationshipParams struct {
-	OwnerID           int64       `json:"owner_id"`
-	Name              string      `json:"name"`
-	Type              pgtype.Text `json:"type"`
-	HowWeMet          pgtype.Text `json:"how_we_met"`
-	Birthday          pgtype.Date `json:"birthday"`
-	Location          pgtype.Text `json:"location"`
-	Tags              []string    `json:"tags"`
-	DriftIntervalDays pgtype.Text `json:"drift_interval_days"`
+	OwnerID            int64              `json:"owner_id"`
+	Name               string             `json:"name"`
+	Type               pgtype.Text        `json:"type"`
+	HowWeMet           pgtype.Text        `json:"how_we_met"`
+	Birthday           pgtype.Date        `json:"birthday"`
+	Location           pgtype.Text        `json:"location"`
+	Tags               []string           `json:"tags"`
+	DriftThresholdDays int32              `json:"drift_threshold_days"`
+	NextContactAt      pgtype.Timestamptz `json:"next_contact_at"`
 }
 
 func (q *Queries) CreateRelationship(ctx context.Context, arg CreateRelationshipParams) (Relationship, error) {
@@ -85,7 +95,8 @@ func (q *Queries) CreateRelationship(ctx context.Context, arg CreateRelationship
 		arg.Birthday,
 		arg.Location,
 		arg.Tags,
-		arg.DriftIntervalDays,
+		arg.DriftThresholdDays,
+		arg.NextContactAt,
 	)
 	var i Relationship
 	err := row.Scan(
@@ -98,8 +109,11 @@ func (q *Queries) CreateRelationship(ctx context.Context, arg CreateRelationship
 		&i.Location,
 		&i.AvatarUrl,
 		&i.Tags,
-		&i.DriftIntervalDays,
-		&i.ReminderSent,
+		&i.DriftThresholdDays,
+		&i.DriftStatus,
+		&i.WarmthScore,
+		&i.LastReminderSentAt,
+		&i.NextContactAt,
 		&i.LastContactAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -123,7 +137,15 @@ func (q *Queries) DeleteRelationship(ctx context.Context, arg DeleteRelationship
 }
 
 const getRelationshipByID = `-- name: GetRelationshipByID :one
-SELECT id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, drift_interval_days, reminder_sent, last_contact_at, created_at, updated_at
+SELECT 
+    id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags,
+    drift_threshold_days,
+    drift_status,
+    warmth_score,
+    last_reminder_sent_at,
+    next_contact_at,
+    last_contact_at,
+    created_at, updated_at
 FROM relationships
 WHERE id = $1 AND owner_id = $2
 `
@@ -146,8 +168,11 @@ func (q *Queries) GetRelationshipByID(ctx context.Context, arg GetRelationshipBy
 		&i.Location,
 		&i.AvatarUrl,
 		&i.Tags,
-		&i.DriftIntervalDays,
-		&i.ReminderSent,
+		&i.DriftThresholdDays,
+		&i.DriftStatus,
+		&i.WarmthScore,
+		&i.LastReminderSentAt,
+		&i.NextContactAt,
 		&i.LastContactAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -156,11 +181,18 @@ func (q *Queries) GetRelationshipByID(ctx context.Context, arg GetRelationshipBy
 }
 
 const listRelationships = `-- name: ListRelationships :many
-SELECT id, owner_id, name, type, how_we_met, location, birthday, tags, drift_interval_days, reminder_sent, last_contact_at, created_at
+SELECT 
+    id, owner_id, name, type, how_we_met, location, birthday, tags,
+    drift_threshold_days,
+    drift_status,
+    warmth_score,
+    last_contact_at,
+    next_contact_at,
+    created_at
 FROM relationships
 WHERE owner_id = $1 
   AND ($2::text = '' OR type = $2)
-ORDER BY last_contact_at DESC NULLS LAST, created_at DESC
+ORDER BY next_contact_at ASC NULLS LAST
 `
 
 type ListRelationshipsParams struct {
@@ -169,18 +201,20 @@ type ListRelationshipsParams struct {
 }
 
 type ListRelationshipsRow struct {
-	ID                int64              `json:"id"`
-	OwnerID           int64              `json:"owner_id"`
-	Name              string             `json:"name"`
-	Type              pgtype.Text        `json:"type"`
-	HowWeMet          pgtype.Text        `json:"how_we_met"`
-	Location          pgtype.Text        `json:"location"`
-	Birthday          pgtype.Date        `json:"birthday"`
-	Tags              []string           `json:"tags"`
-	DriftIntervalDays pgtype.Text        `json:"drift_interval_days"`
-	ReminderSent      bool               `json:"reminder_sent"`
-	LastContactAt     pgtype.Timestamptz `json:"last_contact_at"`
-	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	ID                 int64              `json:"id"`
+	OwnerID            int64              `json:"owner_id"`
+	Name               string             `json:"name"`
+	Type               pgtype.Text        `json:"type"`
+	HowWeMet           pgtype.Text        `json:"how_we_met"`
+	Location           pgtype.Text        `json:"location"`
+	Birthday           pgtype.Date        `json:"birthday"`
+	Tags               []string           `json:"tags"`
+	DriftThresholdDays int32              `json:"drift_threshold_days"`
+	DriftStatus        string             `json:"drift_status"`
+	WarmthScore        pgtype.Int4        `json:"warmth_score"`
+	LastContactAt      pgtype.Timestamptz `json:"last_contact_at"`
+	NextContactAt      pgtype.Timestamptz `json:"next_contact_at"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 }
 
 func (q *Queries) ListRelationships(ctx context.Context, arg ListRelationshipsParams) ([]ListRelationshipsRow, error) {
@@ -201,9 +235,11 @@ func (q *Queries) ListRelationships(ctx context.Context, arg ListRelationshipsPa
 			&i.Location,
 			&i.Birthday,
 			&i.Tags,
-			&i.DriftIntervalDays,
-			&i.ReminderSent,
+			&i.DriftThresholdDays,
+			&i.DriftStatus,
+			&i.WarmthScore,
 			&i.LastContactAt,
+			&i.NextContactAt,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -297,22 +333,32 @@ SET
     birthday = COALESCE($6, birthday),
     location = COALESCE($7, location),
     avatar_url = COALESCE($8, avatar_url),
-    drift_interval_days = COALESCE($9, drift_interval_days), -- Added dynamic update field
+
+    drift_threshold_days = COALESCE($9, drift_threshold_days),
+
     updated_at = NOW()
 WHERE id = $1 AND owner_id = $2
-RETURNING id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, drift_interval_days, reminder_sent, last_contact_at, created_at, updated_at
+RETURNING 
+    id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags,
+    drift_threshold_days,
+    drift_status,
+    warmth_score,
+    last_reminder_sent_at,
+    next_contact_at,
+    last_contact_at,
+    created_at, updated_at
 `
 
 type UpdateRelationshipParams struct {
-	ID                int64       `json:"id"`
-	OwnerID           int64       `json:"owner_id"`
-	Name              pgtype.Text `json:"name"`
-	Type              pgtype.Text `json:"type"`
-	HowWeMet          pgtype.Text `json:"how_we_met"`
-	Birthday          pgtype.Date `json:"birthday"`
-	Location          pgtype.Text `json:"location"`
-	AvatarUrl         pgtype.Text `json:"avatar_url"`
-	DriftIntervalDays pgtype.Text `json:"drift_interval_days"`
+	ID                 int64       `json:"id"`
+	OwnerID            int64       `json:"owner_id"`
+	Name               pgtype.Text `json:"name"`
+	Type               pgtype.Text `json:"type"`
+	HowWeMet           pgtype.Text `json:"how_we_met"`
+	Birthday           pgtype.Date `json:"birthday"`
+	Location           pgtype.Text `json:"location"`
+	AvatarUrl          pgtype.Text `json:"avatar_url"`
+	DriftThresholdDays pgtype.Int4 `json:"drift_threshold_days"`
 }
 
 func (q *Queries) UpdateRelationship(ctx context.Context, arg UpdateRelationshipParams) (Relationship, error) {
@@ -325,7 +371,7 @@ func (q *Queries) UpdateRelationship(ctx context.Context, arg UpdateRelationship
 		arg.Birthday,
 		arg.Location,
 		arg.AvatarUrl,
-		arg.DriftIntervalDays,
+		arg.DriftThresholdDays,
 	)
 	var i Relationship
 	err := row.Scan(
@@ -338,8 +384,11 @@ func (q *Queries) UpdateRelationship(ctx context.Context, arg UpdateRelationship
 		&i.Location,
 		&i.AvatarUrl,
 		&i.Tags,
-		&i.DriftIntervalDays,
-		&i.ReminderSent,
+		&i.DriftThresholdDays,
+		&i.DriftStatus,
+		&i.WarmthScore,
+		&i.LastReminderSentAt,
+		&i.NextContactAt,
 		&i.LastContactAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,

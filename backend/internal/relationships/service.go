@@ -29,26 +29,61 @@ func NewRelationshipService(repo RelationshipRepository) RelationshipService {
 	return &relationshipService{repo: repo}
 }
 
-func (s *relationshipService) AddRelationship(ctx context.Context, dto CreateRelationshipDTO) (RelationshipResponseDTO, error) {
+func (s *relationshipService) AddRelationship(
+	ctx context.Context,
+	dto CreateRelationshipDTO,
+) (RelationshipResponseDTO, error) {
+
+	// =====================================================
+	// 1. Resolve drift threshold
+	// =====================================================
+
+	driftDays := dto.DriftThresholdDays
+	if driftDays == nil {
+		def := defaultDriftByType(dto.Type)
+		driftDays = &def
+	}
+
+	// =====================================================
+	// 2. Compute next_contact_at
+	// =====================================================
+
+	now := time.Now()
+
+	nextContactAt := now.AddDate(0, 0, *driftDays)
+
+	// =====================================================
+	// 3. Build DB insert params
+	// =====================================================
+
 	arg := db.CreateRelationshipParams{
-		OwnerID:  dto.OwnerID,
-		Name:     dto.Name,
-		Type:     dbutils.NewText(dto.Type),
+		OwnerID: dto.OwnerID,
+		Name:    dto.Name,
+		Type:    dbutils.NewText(dto.Type),
+
 		HowWeMet: dbutils.NewText(dto.HowWeMet),
 		Birthday: dbutils.ParseDateString(dto.Birthday),
 		Location: dbutils.NewText(dto.Location),
 		Tags:     dto.Tags,
+
+		DriftThresholdDays: int32(*driftDays),
+		NextContactAt:      dbutils.NewTimestamp(nextContactAt),
 	}
 
-	// 2. Call repository layer
+	// =====================================================
+	// 4. Insert into DB
+	// =====================================================
+
 	dbResult, err := s.repo.CreateRelationship(ctx, arg)
 	if err != nil {
 		return RelationshipResponseDTO{}, err
 	}
 
-	// 3. Map db.Relationship to clean RelationshipResponseDTO
-	return mapToResponseDTO(dbResult), nil
+	// =====================================================
+	// 5. Map response
+	// =====================================================
 
+	return mapToResponseDTO(dbResult), nil
 }
 
 func (s *relationshipService) GetRelationship(ctx context.Context, id int64, ownerID int64) (RelationshipResponseDTO, error) {
@@ -139,11 +174,10 @@ func (s *relationshipService) RemoveTag(ctx context.Context, id int64, ownerID i
 	return TagsUpdateResponseDTO{ID: res.ID, Name: res.Name, Tags: res.Tags}, nil
 }
 
-// Internal mapping logic to isolate pgx/pgtype specifics from the controller
 func mapToResponseDTO(r db.Relationship) RelationshipResponseDTO {
+
 	var birthdayStr *string
 	if r.Birthday.Valid {
-		// Formats the pgtype.Date time back to YYYY-MM-DD
 		formatted := r.Birthday.Time.Format("2006-01-02")
 		birthdayStr = &formatted
 	}
@@ -153,26 +187,46 @@ func mapToResponseDTO(r db.Relationship) RelationshipResponseDTO {
 		lastContact = &r.LastContactAt.Time
 	}
 
+	var nextContact *time.Time
+	if r.NextContactAt.Valid {
+		nextContact = &r.NextContactAt.Time
+	}
+
+	var lastReminder *time.Time
+	if r.LastReminderSentAt.Valid {
+		lastReminder = &r.LastReminderSentAt.Time
+	}
+
 	return RelationshipResponseDTO{
-		ID:            r.ID,
-		OwnerID:       r.OwnerID,
-		Name:          r.Name,
-		Type:          r.Type.String,     // Safe access: extracts empty string if SQL NULL
-		HowWeMet:      r.HowWeMet.String, // Safe access
-		Birthday:      birthdayStr,       // Handled cleanly as a pointer string
-		Location:      r.Location.String, // Safe access
-		Tags:          r.Tags,
-		LastContactAt: lastContact,
-		CreatedAt:     r.CreatedAt.Time,
-		UpdatedAt:     r.UpdatedAt.Time,
+		ID:       r.ID,
+		OwnerID:  r.OwnerID,
+		Name:     r.Name,
+		Type:     r.Type.String,
+		HowWeMet: r.HowWeMet.String,
+		Birthday: birthdayStr,
+		Location: r.Location.String,
+		Tags:     r.Tags,
+
+		// 🔥 Drift system fields
+		DriftThresholdDays: int(r.DriftThresholdDays),
+		DriftStatus:        r.DriftStatus,
+		WarmthScore:        int(r.WarmthScore.Int32),
+
+		LastContactAt:      lastContact,
+		NextContactAt:      nextContact,
+		LastReminderSentAt: lastReminder,
+
+		CreatedAt: r.CreatedAt.Time,
+		UpdatedAt: r.UpdatedAt.Time,
 	}
 }
 
 func mapListRowToResponseDTO(r db.ListRelationshipsRow) RelationshipResponseDTO {
+
 	var birthdayStr *string
 	if r.Birthday.Valid {
-		birthdayStr = new(string)
-		*birthdayStr = r.Birthday.Time.Format("2006-01-02")
+		b := r.Birthday.Time.Format("2006-01-02")
+		birthdayStr = &b
 	}
 
 	var lastContact *time.Time
@@ -180,17 +234,41 @@ func mapListRowToResponseDTO(r db.ListRelationshipsRow) RelationshipResponseDTO 
 		lastContact = &r.LastContactAt.Time
 	}
 
+	var nextContact *time.Time
+	if r.NextContactAt.Valid {
+		nextContact = &r.NextContactAt.Time
+	}
+
 	return RelationshipResponseDTO{
-		ID:            r.ID,
-		OwnerID:       r.OwnerID,
-		Name:          r.Name,
-		Type:          r.Type.String,
-		HowWeMet:      r.HowWeMet.String, // Now safely populated!
-		Location:      r.Location.String, // Now safely populated!
-		Birthday:      birthdayStr,
-		Tags:          r.Tags,
+		ID:       r.ID,
+		OwnerID:  r.OwnerID,
+		Name:     r.Name,
+		Type:     r.Type.String,
+		HowWeMet: r.HowWeMet.String,
+		Location: r.Location.String,
+		Birthday: birthdayStr,
+		Tags:     r.Tags,
+
+		DriftThresholdDays: int(r.DriftThresholdDays),
+		DriftStatus:        r.DriftStatus,
+		WarmthScore:        int(r.WarmthScore.Int32),
+
 		LastContactAt: lastContact,
-		CreatedAt:     r.CreatedAt.Time,
-		UpdatedAt:     time.Time{}, // Still zeroed out unless you add updated_at to the SELECT statement too
+		NextContactAt: nextContact,
+
+		CreatedAt: r.CreatedAt.Time,
+	}
+}
+
+func defaultDriftByType(t string) int {
+	switch t {
+	case "friend":
+		return 7
+	case "partner":
+		return 3
+	case "family":
+		return 14
+	default:
+		return 7
 	}
 }

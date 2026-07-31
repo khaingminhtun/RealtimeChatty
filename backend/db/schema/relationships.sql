@@ -12,8 +12,12 @@ CREATE TABLE relationships (
     avatar_url TEXT,
     tags TEXT[] DEFAULT '{}', -- Native PostgreSQL text array
     
-    drift_interval_days VARCHAR(50) DEFAULT NULL,
-    reminder_sent BOOLEAN NOT NULL DEFAULT FALSE,
+    drift_threshold_days INTEGER NOT NULL DEFAULT 30,
+
+    drift_status VARCHAR(50) NOT NULL DEFAULT 'healthy',
+    warmth_score INTEGER DEFAULT 100,
+    last_reminder_sent_at TIMESTAMPTZ,
+    next_contact_at TIMESTAMPTZ,
     
     last_contact_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),

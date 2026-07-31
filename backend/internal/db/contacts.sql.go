@@ -46,20 +46,102 @@ func (q *Queries) CreateContactLog(ctx context.Context, arg CreateContactLogPara
 	return i, err
 }
 
+const deleteContact = `-- name: DeleteContact :exec
+DELETE FROM contacts
+WHERE id = $1 AND user_id = $2
+`
+
+type DeleteContactParams struct {
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) DeleteContact(ctx context.Context, arg DeleteContactParams) error {
+	_, err := q.db.Exec(ctx, deleteContact, arg.ID, arg.UserID)
+	return err
+}
+
+const getContactByID = `-- name: GetContactByID :one
+SELECT id, relationship_id, user_id, channel, note, contacted_at, created_at
+FROM contacts
+WHERE id = $1
+  AND user_id = $2
+`
+
+type GetContactByIDParams struct {
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) GetContactByID(ctx context.Context, arg GetContactByIDParams) (Contact, error) {
+	row := q.db.QueryRow(ctx, getContactByID, arg.ID, arg.UserID)
+	var i Contact
+	err := row.Scan(
+		&i.ID,
+		&i.RelationshipID,
+		&i.UserID,
+		&i.Channel,
+		&i.Note,
+		&i.ContactedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getContactsByRelationship = `-- name: GetContactsByRelationship :many
+SELECT id, relationship_id, user_id, channel, note, contacted_at, created_at
+FROM contacts
+WHERE relationship_id = $1
+ORDER BY contacted_at DESC
+`
+
+func (q *Queries) GetContactsByRelationship(ctx context.Context, relationshipID int64) ([]Contact, error) {
+	rows, err := q.db.Query(ctx, getContactsByRelationship, relationshipID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Contact
+	for rows.Next() {
+		var i Contact
+		if err := rows.Scan(
+			&i.ID,
+			&i.RelationshipID,
+			&i.UserID,
+			&i.Channel,
+			&i.Note,
+			&i.ContactedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPendingDriftReminders = `-- name: GetPendingDriftReminders :many
-SELECT id, owner_id, name, type, drift_interval_days, last_contact_at
+SELECT 
+    id, owner_id, name, type,
+    drift_threshold_days,
+    last_contact_at,
+    next_contact_at
 FROM relationships
-WHERE last_contact_at IS NOT NULL 
-  AND reminder_sent = FALSE
+WHERE next_contact_at IS NOT NULL
+  AND next_contact_at <= NOW()
 `
 
 type GetPendingDriftRemindersRow struct {
-	ID                int64              `json:"id"`
-	OwnerID           int64              `json:"owner_id"`
-	Name              string             `json:"name"`
-	Type              pgtype.Text        `json:"type"`
-	DriftIntervalDays pgtype.Text        `json:"drift_interval_days"`
-	LastContactAt     pgtype.Timestamptz `json:"last_contact_at"`
+	ID                 int64              `json:"id"`
+	OwnerID            int64              `json:"owner_id"`
+	Name               string             `json:"name"`
+	Type               pgtype.Text        `json:"type"`
+	DriftThresholdDays int32              `json:"drift_threshold_days"`
+	LastContactAt      pgtype.Timestamptz `json:"last_contact_at"`
+	NextContactAt      pgtype.Timestamptz `json:"next_contact_at"`
 }
 
 func (q *Queries) GetPendingDriftReminders(ctx context.Context) ([]GetPendingDriftRemindersRow, error) {
@@ -76,8 +158,9 @@ func (q *Queries) GetPendingDriftReminders(ctx context.Context) ([]GetPendingDri
 			&i.OwnerID,
 			&i.Name,
 			&i.Type,
-			&i.DriftIntervalDays,
+			&i.DriftThresholdDays,
 			&i.LastContactAt,
+			&i.NextContactAt,
 		); err != nil {
 			return nil, err
 		}
@@ -90,18 +173,23 @@ func (q *Queries) GetPendingDriftReminders(ctx context.Context) ([]GetPendingDri
 }
 
 const listRelationshipsForDrift = `-- name: ListRelationshipsForDrift :many
-SELECT id, owner_id, name, type, drift_interval_days, last_contact_at 
+SELECT 
+    id, owner_id, name, type,
+    drift_threshold_days,
+    last_contact_at,
+    next_contact_at
 FROM relationships
 WHERE owner_id = $1
 `
 
 type ListRelationshipsForDriftRow struct {
-	ID                int64              `json:"id"`
-	OwnerID           int64              `json:"owner_id"`
-	Name              string             `json:"name"`
-	Type              pgtype.Text        `json:"type"`
-	DriftIntervalDays pgtype.Text        `json:"drift_interval_days"`
-	LastContactAt     pgtype.Timestamptz `json:"last_contact_at"`
+	ID                 int64              `json:"id"`
+	OwnerID            int64              `json:"owner_id"`
+	Name               string             `json:"name"`
+	Type               pgtype.Text        `json:"type"`
+	DriftThresholdDays int32              `json:"drift_threshold_days"`
+	LastContactAt      pgtype.Timestamptz `json:"last_contact_at"`
+	NextContactAt      pgtype.Timestamptz `json:"next_contact_at"`
 }
 
 func (q *Queries) ListRelationshipsForDrift(ctx context.Context, ownerID int64) ([]ListRelationshipsForDriftRow, error) {
@@ -118,8 +206,9 @@ func (q *Queries) ListRelationshipsForDrift(ctx context.Context, ownerID int64) 
 			&i.OwnerID,
 			&i.Name,
 			&i.Type,
-			&i.DriftIntervalDays,
+			&i.DriftThresholdDays,
 			&i.LastContactAt,
+			&i.NextContactAt,
 		); err != nil {
 			return nil, err
 		}
@@ -133,7 +222,8 @@ func (q *Queries) ListRelationshipsForDrift(ctx context.Context, ownerID int64) 
 
 const markReminderAsSent = `-- name: MarkReminderAsSent :exec
 UPDATE relationships
-SET reminder_sent = TRUE
+SET 
+    last_reminder_sent_at = NOW()
 WHERE id = $1
 `
 
@@ -143,10 +233,16 @@ func (q *Queries) MarkReminderAsSent(ctx context.Context, id int64) error {
 }
 
 const searchRelationships = `-- name: SearchRelationships :many
-SELECT id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, drift_interval_days, reminder_sent, last_contact_at, created_at, updated_at FROM relationships
+SELECT id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, drift_threshold_days, drift_status, warmth_score, last_reminder_sent_at, next_contact_at, last_contact_at, created_at, updated_at
+FROM relationships
 WHERE owner_id = $1
   AND (
-    to_tsvector('english', coalesce(name, '') || ' ' || coalesce(type, '') || ' ' || coalesce(how_we_met, '')) 
+    to_tsvector(
+      'english',
+      coalesce(name, '') || ' ' ||
+      coalesce(type, '') || ' ' ||
+      coalesce(how_we_met, '')
+    )
     @@ plainto_tsquery('english', $2)
   )
 ORDER BY last_contact_at DESC
@@ -176,8 +272,11 @@ func (q *Queries) SearchRelationships(ctx context.Context, arg SearchRelationshi
 			&i.Location,
 			&i.AvatarUrl,
 			&i.Tags,
-			&i.DriftIntervalDays,
-			&i.ReminderSent,
+			&i.DriftThresholdDays,
+			&i.DriftStatus,
+			&i.WarmthScore,
+			&i.LastReminderSentAt,
+			&i.NextContactAt,
 			&i.LastContactAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -192,22 +291,43 @@ func (q *Queries) SearchRelationships(ctx context.Context, arg SearchRelationshi
 	return items, nil
 }
 
-const updateRelationshipLastContact = `-- name: UpdateRelationshipLastContact :exec
-UPDATE relationships
-SET 
-    last_contact_at = $1,
-    reminder_sent = FALSE, -- Reset the worker alert state automatically on new contact
+const updateContact = `-- name: UpdateContact :one
+UPDATE contacts
+SET
+    channel = COALESCE($3, channel),
+    note = COALESCE($4, note),
+    contacted_at = COALESCE($5, contacted_at),
     updated_at = NOW()
-WHERE id = $2 AND owner_id = $3
+WHERE id = $1
+  AND user_id = $2
+RETURNING id, relationship_id, user_id, channel, note, contacted_at, created_at
 `
 
-type UpdateRelationshipLastContactParams struct {
-	LastContactAt pgtype.Timestamptz `json:"last_contact_at"`
-	ID            int64              `json:"id"`
-	OwnerID       int64              `json:"owner_id"`
+type UpdateContactParams struct {
+	ID          int64              `json:"id"`
+	UserID      int64              `json:"user_id"`
+	Channel     string             `json:"channel"`
+	Note        pgtype.Text        `json:"note"`
+	ContactedAt pgtype.Timestamptz `json:"contacted_at"`
 }
 
-func (q *Queries) UpdateRelationshipLastContact(ctx context.Context, arg UpdateRelationshipLastContactParams) error {
-	_, err := q.db.Exec(ctx, updateRelationshipLastContact, arg.LastContactAt, arg.ID, arg.OwnerID)
-	return err
+func (q *Queries) UpdateContact(ctx context.Context, arg UpdateContactParams) (Contact, error) {
+	row := q.db.QueryRow(ctx, updateContact,
+		arg.ID,
+		arg.UserID,
+		arg.Channel,
+		arg.Note,
+		arg.ContactedAt,
+	)
+	var i Contact
+	err := row.Scan(
+		&i.ID,
+		&i.RelationshipID,
+		&i.UserID,
+		&i.Channel,
+		&i.Note,
+		&i.ContactedAt,
+		&i.CreatedAt,
+	)
+	return i, err
 }

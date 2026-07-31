@@ -7,24 +7,48 @@ INSERT INTO relationships (
     birthday, 
     location, 
     tags,
-    drift_interval_days -- Added parameter
+    drift_threshold_days,
+    next_contact_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
-RETURNING id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, drift_interval_days, reminder_sent, last_contact_at, created_at, updated_at;
+RETURNING 
+    id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags,
+    drift_threshold_days,
+    drift_status,
+    warmth_score,
+    last_reminder_sent_at,
+    next_contact_at,
+    last_contact_at,
+    created_at, updated_at;
 
 
 -- name: GetRelationshipByID :one
-SELECT id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, drift_interval_days, reminder_sent, last_contact_at, created_at, updated_at
+SELECT 
+    id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags,
+    drift_threshold_days,
+    drift_status,
+    warmth_score,
+    last_reminder_sent_at,
+    next_contact_at,
+    last_contact_at,
+    created_at, updated_at
 FROM relationships
 WHERE id = $1 AND owner_id = $2;
 
 -- name: ListRelationships :many
-SELECT id, owner_id, name, type, how_we_met, location, birthday, tags, drift_interval_days, reminder_sent, last_contact_at, created_at
+SELECT 
+    id, owner_id, name, type, how_we_met, location, birthday, tags,
+    drift_threshold_days,
+    drift_status,
+    warmth_score,
+    last_contact_at,
+    next_contact_at,
+    created_at
 FROM relationships
 WHERE owner_id = $1 
   AND ($2::text = '' OR type = $2)
-ORDER BY last_contact_at DESC NULLS LAST, created_at DESC;
+ORDER BY next_contact_at ASC NULLS LAST;
 
 -- name: UpdateRelationship :one
 UPDATE relationships
@@ -35,10 +59,20 @@ SET
     birthday = COALESCE(sqlc.narg('birthday'), birthday),
     location = COALESCE(sqlc.narg('location'), location),
     avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url),
-    drift_interval_days = COALESCE(sqlc.narg('drift_interval_days'), drift_interval_days), -- Added dynamic update field
+
+    drift_threshold_days = COALESCE(sqlc.narg('drift_threshold_days'), drift_threshold_days),
+
     updated_at = NOW()
 WHERE id = $1 AND owner_id = $2
-RETURNING id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags, drift_interval_days, reminder_sent, last_contact_at, created_at, updated_at;
+RETURNING 
+    id, owner_id, name, type, how_we_met, birthday, location, avatar_url, tags,
+    drift_threshold_days,
+    drift_status,
+    warmth_score,
+    last_reminder_sent_at,
+    next_contact_at,
+    last_contact_at,
+    created_at, updated_at;
 
 -- name: DeleteRelationship :exec
 DELETE FROM relationships

@@ -6,6 +6,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/khaingminhtun/realtimechatty/internal/auth"
+	"github.com/khaingminhtun/realtimechatty/internal/contacts"
 	"github.com/khaingminhtun/realtimechatty/internal/db"
 	"github.com/khaingminhtun/realtimechatty/internal/mail"
 	middleware "github.com/khaingminhtun/realtimechatty/internal/middlewares"
@@ -27,6 +28,7 @@ func NewApp(pool *pgxpool.Pool, redis *redis.Client) *App {
 	authRepo := auth.NewAuthRepository(pool)
 	relationshiprepo := relationships.NewRelationShipRepository(queries)
 	noteRepo := notes.NewNoteRepository(queries)
+	contactRepo := contacts.NewContactRepository(pool)
 
 	tokenManager := auth.NewTokenManager()
 	mailer := mail.NewSendGridMailer()
@@ -37,11 +39,13 @@ func NewApp(pool *pgxpool.Pool, redis *redis.Client) *App {
 	userSvc := user.NewUserService(userRepo)
 	relationshipservice := relationships.NewRelationshipService(relationshiprepo)
 	noteService := notes.NewNoteService(noteRepo)
+	contactService := contacts.NewContactService(contactRepo)
 
 	authHandler := auth.NewAuthHandler(authSvc)
 	userHandler := user.NewUserHandler(userSvc)
 	relationshipHandler := relationships.NewHandler(relationshipservice)
 	noteHandler := notes.NewNoteHandler(noteService)
+	contactHandler := contacts.NewContactHandler(contactService)
 
 	// IMPORTANT: must be used immediately
 	r := router.SetupRouter(
@@ -50,6 +54,7 @@ func NewApp(pool *pgxpool.Pool, redis *redis.Client) *App {
 			UserHandler:         userHandler,
 			RelationshipHandler: relationshipHandler,
 			NoteHandler:         noteHandler,
+			ContactHandler:      contactHandler,
 			AuthMiddleware:      authGuard,
 		},
 	)
